@@ -4,6 +4,8 @@ import static com.gddomenico.ih.handlers.B2DVars.PPM;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Array;
@@ -27,6 +29,9 @@ public class Play extends GameState {
     private Body enemyBody;
     private MyContactListener cl;
 
+    
+    Array<Body> bodies;
+
     public Play(GameStateManager gsm) {
         super(gsm);
 
@@ -39,9 +44,27 @@ public class Play extends GameState {
 
         createEnemies();
 
+        bodies = new Array<Body>();
+        world.getBodies(bodies);
         //set up b2d cam
         b2dCam = new OrthographicCamera();
         b2dCam.setToOrtho(false, invasorsHunt.V_WIDTH / PPM, invasorsHunt.V_HEIGHT / PPM);
+    }
+    
+    public void FollowPlayer (Body enemy) {
+    	
+    	Vector2 position = playerBody.getPosition();  	
+    	Vector2 positionEnemy = enemy.getPosition();
+    	
+    	float px = position.x - positionEnemy.x;
+    	float py = position.y - positionEnemy.y;
+    	
+    	float hipotenusa = (float) Math.sqrt((px*px) + (py * py));
+    	
+    	float cos = (px / hipotenusa)*0.5f;
+    	float sin = (py / hipotenusa)*0.5f;
+    	    	
+    	enemy.setLinearVelocity(cos, sin);    	    	
     }
 
     public void handleInput() {
@@ -75,11 +98,13 @@ public class Play extends GameState {
             if(cl.isPlayerOnContact()){
                 if(cl.isLeftContact() && rightArm == false) {
                     System.out.println("Punch Left!!");
-                    Array<Body> bodies = new Array<Body>();
-                    world.getBodies(bodies);
+
                     System.out.println(bodies);
                 }else if(cl.isRightContact() && rightArm == true){
                     System.out.println("Punch Right!!");
+                }
+                else {
+                	System.out.println("Punch somewherer else");
                 }
             }else{
                 System.out.println("Missed!!");
@@ -94,6 +119,11 @@ public class Play extends GameState {
     public void update(float dt) {
 
         handleInput();
+                
+        for(int i = 0; i < bodies.size; i++) {
+        	if (bodies.get(i) != playerBody)
+        	FollowPlayer(bodies.get(i));        	
+        }
 
         world.step(dt, 6, 2);
 
